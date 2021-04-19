@@ -25,7 +25,7 @@
         <el-form-item prop="password">
           <el-input
             type="password"
-            prefix-icon="iconfont icon-zu"
+            prefix-icon="iconfont icon-password"
             placeholder="请输入密码"
             v-model="lginForm.password"
           ></el-input>
