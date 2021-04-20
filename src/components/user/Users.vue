@@ -73,6 +73,7 @@
                 size="mini"
                 type="warning"
                 icon="el-icon-setting"
+                @click="serRole(scope.row)"
               ></el-button>
             </el-tooltip>
           </template>
@@ -149,6 +150,31 @@
       <span slot="footer" class="dialog-footer">
         <el-button @click="editDialogVisible = false">取 消</el-button>
         <el-button type="primary" @click="editUserInfo">确 定</el-button>
+      </span>
+    </el-dialog>
+    <!-- 分配角色的对话框 -->
+    <el-dialog
+      title="分配角色"
+      :visible.sync="setRoleDialogVisible"
+      width="50%"
+      >
+      <div>
+        <p>当前的用户：{{userInfo.username}}</p>
+        <p>当前的角色：{{userInfo.role_name}}</p>
+        <p>分配新角色：
+          <el-select v-model="value" placeholder="请选择">
+            <el-option
+              v-for="item in options"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select>
+        </p>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="setRoleDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="setRoleDialogVisible = false">确 定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -237,6 +263,12 @@ export default {
           { validator: checkMobile, trigger: "blur" },
         ],
       },
+      // 控制分配角色对话框的显示与隐藏
+      setRoleDialogVisible:false,
+      // 需要被分配角色的用户信息
+      userInfo:{},
+      // 所有角色的数据列表
+      roleList:[],
     };
   },
   created() {
@@ -385,6 +417,20 @@ export default {
           });
         });
     },
+    // 展示分配角色的对话框
+    async serRole(userInfo){
+      this.userInfo = userInfo;
+      // 在展示对话框前，获取所有的角色列表
+      const {data:res} = await this.$http.get('roles');
+      if(res.meta.status!==200){
+        return this.$message.error({
+              message: res.meta.msg,
+               duration: 1000,
+            });
+      }
+      this.roleList=res.data;
+      this.setRoleDialogVisible=true;
+    }
   },
 };
 </script>

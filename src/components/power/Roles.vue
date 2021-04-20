@@ -25,7 +25,7 @@
             >
               <!-- 一级权限 -->
               <el-col :span="5">
-                <el-tag>{{ item.authName }}</el-tag>
+                <el-tag closable @close="removeRightById(scope.row,item.id)">{{ item.authName }}</el-tag>
                 <i class="el-icon-caret-right"></i>
               </el-col>
               <!-- 二级和三级权限权限 -->
@@ -38,7 +38,7 @@
                 >
                   <!-- 二级权限 -->
                   <el-col :span="6">
-                    <el-tag type="success">{{ list.authName }}</el-tag>
+                    <el-tag closable @close="removeRightById(scope.row,list.id)" type="success">{{ list.authName }}</el-tag>
                     <i class="el-icon-caret-right"></i>
                   </el-col>
                   <!-- 三级权限 -->
@@ -48,7 +48,7 @@
                       type="warning"
                       v-for="(item2, j) in list.children"
                       :key="item2.id"
-                      @close="removeRightById(item2.id)"
+                      @close="removeRightById(scope.row,item2.id)"
                     >
                       {{ item2.authName }}
                     </el-tag>
@@ -70,13 +70,34 @@
             <el-button size="mini" type="danger" icon="el-icon-delete"
               >删除</el-button
             >
-            <el-button size="mini" type="warning" icon="el-icon-setting"
+            <el-button @click="showSetRightDialog(scope.row)" size="mini" type="warning" icon="el-icon-setting"
               >分配权限</el-button
             >
           </template>
         </el-table-column>
       </el-table>
     </el-card>
+    <!-- 分配权限对话框 -->
+    <el-dialog
+      title="分配权限"
+      :visible.sync="setRightDialogVisible"
+      width="50%" @close="setRightDialogClosed">
+      <!-- 树形控件 -->
+      <el-tree 
+        show-checkbox 
+        :data="rightslist" 
+        :props="treetProps"
+        node-key="id"
+        default-expand-all
+        :default-checked-keys="defkeys"
+        ref="treeRef"
+        >
+      </el-tree>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="setRightDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="allotRights">确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -86,6 +107,19 @@ export default {
     return {
       // 所有角色列表数据
       roleslist: [],
+      // 控制分配权限对话框的显示与隐藏
+      setRightDialogVisible:false,
+      // 所有权限的数据
+      rightslist:[],
+      // 树形控件的属性绑定对象
+      treetProps:{
+        label:'authName',
+        children:'children'
+      },
+      //默认选中的id值数组
+      defkeys:[],
+      // 当前即将分配权限的id
+      roleId:''
     };
   },
   created() {
@@ -103,7 +137,7 @@ export default {
       this.roleslist = res.data;
     },
     // 根据id删除对应的权限
-    async removeRightById(id) {
+    async removeRightById(role,id) {
       //弹窗提示
       const confirmResult = await this.$messageBox
         .confirm("确定要删除用户权限吗?一旦删除将无法恢复，请慎重", "提示", {
@@ -118,12 +152,73 @@ export default {
           });
         });
       if (confirmResult === "confirm") {
+        const {data:res} = await this.$http.delete(`roles/${role.id}/rights/${id}`)
+        if(res.meta.status!==200){
+          return this.$message.error({
+            message: res.meta.msg,
+            duration: 1000,
+          });
+        }
         this.$message.success({
-          message: "已成功删除权限",
+          message: res.meta.msg,
           duration: 1000,
         });
+        role.children=res.data
       }
     },
+    // 展示分配权限的对话框
+    async showSetRightDialog(role){
+      this.roleId = role.id;
+      // 获取所有权限的数据
+      const {data:res} = await this.$http.get('rights/tree');
+      if(res.meta.status!==200){
+        return this.$message.error({
+            message: res.meta.msg,
+            duration: 1000,
+          });
+      }
+      // 把获取到的权限数据保存到data中
+      this.rightslist = res.data;
+      // 递归获取三级节点的ID
+      this.getLesfKeys(role,this.defkeys)
+      this.setRightDialogVisible=true;
+    },
+    // 通过递归的形式，获取角色下所有的三级权限的id，并保存到defkeys数组中
+    getLesfKeys(node,arr){
+      // 如果当前的node节点不包含children属性，则是三级节点
+      if(!node.children){
+        return arr.push(node.id);
+      }
+      node.children.forEach(item=>{
+        this.getLesfKeys(item,arr)
+      })
+    },
+    // 监听分权权限对话框的关闭事件
+    setRightDialogClosed(){
+      this.defkeys=[]
+    },
+    // 点击为角色分配权限
+    async allotRights(){
+      const keys = [
+        ...this.$refs.treeRef.getCheckedKeys(),
+        ...this.$refs.treeRef.getHalfCheckedKeys(),
+      ]
+      
+      const idStr = keys.join(',')
+      const {data:res} = await this.$http.post(`roles/${this.roleId}/rights`,{rids:idStr})
+      if (res.meta.status!==200) {
+        return this.$message.error({
+            message: res.meta.msg,
+            duration: 1000,
+          });
+      }
+      this.$message.success({
+            message: res.meta.msg,
+            duration: 1000,
+      });
+          this.getRolesList();
+          this.setRightDialogVisible=false;
+    }
   },
 };
 </script>
