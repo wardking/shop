@@ -157,24 +157,25 @@
       title="分配角色"
       :visible.sync="setRoleDialogVisible"
       width="50%"
+      @close="setRoleDialogClosed"
       >
       <div>
         <p>当前的用户：{{userInfo.username}}</p>
         <p>当前的角色：{{userInfo.role_name}}</p>
         <p>分配新角色：
-          <el-select v-model="value" placeholder="请选择">
+          <el-select v-model="selectedRoleId" placeholder="请选择">
             <el-option
-              v-for="item in options"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value">
+              v-for="item in roleList"
+              :key="item.id"
+              :label="item.roleName"
+              :value="item.id">
             </el-option>
           </el-select>
         </p>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button @click="setRoleDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="setRoleDialogVisible = false">确 定</el-button>
+        <el-button type="primary" @click="saveRoleInfo">确 定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -269,6 +270,8 @@ export default {
       userInfo:{},
       // 所有角色的数据列表
       roleList:[],
+      //   已选中的角色id值
+      selectedRoleId:"",
     };
   },
   created() {
@@ -430,6 +433,35 @@ export default {
       }
       this.roleList=res.data;
       this.setRoleDialogVisible=true;
+    },
+    // 点击按钮分配角色
+    async saveRoleInfo(){
+        if(!this.selectedRoleId){
+            return this.$message.error({
+              message: "请选择要分配的角色",
+               duration: 1000,
+            });
+        }
+        const {data:res} = await this.$http.put(
+            `users/${this.userInfo.id}/role`,
+            {rid:this.selectedRoleId})
+        if(res.meta.status!==200){
+            return this.$message.error({
+              message: res.meta.msg,
+               duration: 1000,
+            });
+        }
+        this.$message.success({
+              message: res.meta.msg,
+               duration: 1000,
+            });
+        this.getUserList()
+        this.setRoleDialogVisible= false;
+    },
+    // 监听角色框关闭事件
+    setRoleDialogClosed(){
+        this.selectedRoleId='';
+        this.userInfo={}
     }
   },
 };
