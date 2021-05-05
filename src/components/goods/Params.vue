@@ -46,6 +46,7 @@
                   v-for="(item, index) in scope.row.attr_vals"
                   :key="index"
                   closable
+                  @close="handleClose(index, scope.row)"
                 >
                   {{ item }}
                 </el-tag>
@@ -56,8 +57,8 @@
                   v-model="scope.row.inputValue"
                   ref="saveTagInput"
                   size="small"
-                  @keyup.enter.native="handleInputConfirm"
-                  @blur="handleInputConfirm"
+                  @keyup.enter.native="handleInputConfirm(scope.row)"
+                  @blur="handleInputConfirm(scope.row)"
                 >
                 </el-input>
                 <el-button
@@ -111,6 +112,7 @@
                   v-for="(item, index) in scope.row.attr_vals"
                   :key="index"
                   closable
+                  @close="handleClose(index, scope.row)"
                 >
                   {{ item }}
                 </el-tag>
@@ -121,8 +123,8 @@
                   v-model="scope.row.inputValue"
                   ref="saveTagInput"
                   size="small"
-                  @keyup.enter.native="handleInputConfirm"
-                  @blur="handleInputConfirm"
+                  @keyup.enter.native="handleInputConfirm(scope.row)"
+                  @blur="handleInputConfirm(scope.row)"
                 >
                 </el-input>
                 <el-button
@@ -299,6 +301,8 @@ export default {
     async getParamsData() {
       if (this.selectedCateKeys.length !== 3) {
         this.selectedCateKeys = [];
+        this.manyTableData = [];
+        this.onlyTableData = [];
         return;
       }
       //   根据所选的分类id和当前面板获取分类的参数
@@ -436,8 +440,17 @@ export default {
       this.getParamsData();
     },
     // 文本框失去焦点或者按下enter键
-    handleInputConfirm() {
-      console.log("input");
+    handleInputConfirm(row) {
+      if (row.inputValue.trim().length === 0) {
+        row.inputValue = "";
+        row.inputVisible = false;
+        return;
+      }
+      //  用户输入真实内容
+      row.attr_vals.push(row.inputValue.trim());
+      row.inputValue = "";
+      row.inputVisible = false;
+      this.saveAttrVals(row);
     },
     // 点击按钮展示文本输入框
     showInput(row) {
@@ -445,6 +458,33 @@ export default {
       this.$nextTick((_) => {
         this.$refs.saveTagInput.$refs.input.focus();
       });
+    },
+    // 操作tag添加与删除的事件
+    async saveAttrVals(row) {
+      // 发起网络请求
+      const { data: res } = await this.$http.put(
+        `categories/${this.cateId}/attributes/${row.attr_id}`,
+        {
+          attr_name: row.attr_name,
+          attr_sel: row.attr_sel,
+          attr_vals: row.attr_vals.join(" "),
+        }
+      );
+      if (res.meta.status !== 200) {
+        return this.$message.error({
+          message: res.meta.msg,
+          duration: 1000,
+        });
+      }
+      this.$message.success({
+        message: res.meta.msg,
+        duration: 1000,
+      });
+    },
+    // 删除参数tag标签
+    handleClose(i, row) {
+      row.attr_vals.splice(i, 1);
+      this.saveAttrVals(row);
     },
   },
 };
