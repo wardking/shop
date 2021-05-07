@@ -4,7 +4,7 @@
     <el-header>
       <div>
         <img src="../assets/img/logo.png" alt="大香蕉直播" />
-        <span>直播后台管理系统</span>
+        <span>商城后台管理系统</span>
       </div>
       <el-button type="info" @click="logout">退出登录</el-button>
     </el-header>
