@@ -315,9 +315,7 @@ export default {
         form.goods_price = Number(this.addForm.goods_price)
         form.goods_weight = Number(this.addForm.goods_weight)
         form.goods_number = Number(this.addForm.goods_number)
-        console.log(form);
         const { data: res } = await this.$http.post("goods", form);
-        console.log(res);
         if (res.meta.status !== 201) {
           return this.$message.error({
             message: res.meta.msg,

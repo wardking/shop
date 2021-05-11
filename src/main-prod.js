@@ -2,7 +2,7 @@ import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
 import store from './store'
-import './plugins/element.js'
+// import './plugins/element.js'
 // 引入字体图标
 import "./assets/fonts/iconfont.css"
 // 导入全局样式
@@ -12,14 +12,21 @@ import axios from 'axios'
 import TreeTable from 'vue-table-with-tree-grid'
 // 导入富文本编辑器
 import VueQuillEditor from 'vue-quill-editor'
-import 'quill/dist/quill.core.css'
-import 'quill/dist/quill.snow.css'
-import 'quill/dist/quill.bubble.css'
+// NProgress  进度条的js与css
+import NProgress from 'nprogress'
+
 // 导入富文本编辑器的样式
 // 配置请求的根路径
 axios.defaults.baseURL = "https://www.liulongbin.top:8888/api/private/v1/"
+// 在request拦截器中展示进度条 NProgress.start()
 axios.interceptors.request.use((config) => {
+    NProgress.start()
     config.headers.Authorization = window.sessionStorage.getItem('token')
+    return config
+})
+// 在response中隐藏进度条 NProgress.done()
+axios.interceptors.response.use(config => {
+    NProgress.done()
     return config
 })
 Vue.prototype.$http = axios;
